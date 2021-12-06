@@ -14,8 +14,10 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // define routes
-const formController = require("./controllers/formController");
+const formController = require("./controllers/form-controller");
+const authController = require("./controllers/auth-controller");
 app.use("/forms", formController);
+app.use("/auth", authController);
 
 // connect to database and listen for requests
 mongoose.connect(process.env.MONGODB_URI, {
