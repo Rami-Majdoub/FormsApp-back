@@ -1,134 +1,26 @@
 const router = require("express").Router();
-const ObjectId = require("mongoose").ObjectId;
 const Form = require("../models/form-model");
 
-const dummyForm = new Form({
-	name: "test",
-	fields: [
-		{
-			field_name: "a1",
-			field_type: "text",
-		},
-		{
-			field_name: "b1",
-			field_type: "number",
-		},
-		{
-			field_name: "a2",
-			field_type: "text",
-		},
-		{
-			field_name: "b3",
-			field_type: "number",
-		},
-		{
-			field_name: "a3",
-			field_type: "text",
-		},
-		{
-			field_name: "b3",
-			field_type: "number",
-		},
-		{
-			field_name: "c1",
-			field_type: "date",
-		},
-		{
-			field_name: "c2",
-			field_type: "date",
-		},
-		{
-			field_name: "d1",
-			field_type: "button",
-		},
-		{
-			field_name: "d2",
-			field_type: "button",
-		},
-	],
-	submittions:[
-		{
-			// userId: "g6zd5rg1ze65tg1z6tg51z6tg1z",
-			values: [
-				{
-					field_name: "aaa", // field_id
-					field_value: "hello", 
-				},
-				{
-					field_name: "bbb", // field_id
-					field_value: "2", 
-				},
-			]
-		},
-		{
-			// userId: "5aertz6ert5z6ertzert6zer5ter",
-			values: [
-				{
-					field_name: "aaa", // field_id
-					field_value: "world", 
-				},
-				{
-					field_name: "bbb", // field_id
-					field_value: "3", 
-				},
-			]
-		},
-		{
-			// userId: "5aertz6ert5z6ertzert6zer5ter",
-			values: [
-				{
-					field_name: "zzz", // field_id
-					field_value: "rami", 
-				},
-			]
-		},
-	]	
-});
-
-
-router.get("/form-to-submit/:id", async (req, res) => {
+// get form fields
+router.get("/submit/:id", async (req, res) => {
 	const id = req.params.id;
-	const form = await Form.findOne({ _id: id });
+
+	// TODO: check id is mongoid
+
+	const form = await Form.findOne({ _id: id }, { _id: 1, name: 1, fields: 1});
 	res.status(200).json(form);
 });
 
-// submitted data of form
-router.get("/data/:id", async (req, res) => {
-	const id = req.params.id;
-	// check mongoid
+// submit form
+router.post("/submit/:id", (req, res) => {
+	const body = req.body;
 
-	const form = await Form.findOne({ _id: id });	
-	const submittions = form.submittions;
+	// TODO: check body
 
-	const columnNamesObj = {};
-	const f = submittions.map(s => {
-		const r = {};
-		s.values.map( ({field_name, field_value}) =>{
-			const key = field_name; 
-			const value = field_value; 
-			// console.log(`${key}: ${value}`);
-			r[key] = value;
-			columnNamesObj[key] = "";
-		})
-		return r;
+	console.log(body);
+	const newForm = new Form({
+		body
 	});
-
-	return res.send({ data: f, columns: Object.keys(columnNamesObj)});
-});
-
-router.get("/:id", async (req, res) => {
-	const forms = await Form.find({});
-	return res.send(forms);
-});
-
-router.get("/test/f", async (req, res) => {
-	const forms = await Form.find({});
-	return res.send(forms);
-});
-
-router.post("/", (req, res) => {
-	// get data from request
-	const newForm = dummyForm; //req.body;
 	
 	newForm.save((err, mongoResp) => {
 		if (err || !mongoResp._id){
@@ -139,10 +31,61 @@ router.post("/", (req, res) => {
 	});
 });
 
+// submitted data of form
+router.get("/data/:id", async (req, res) => {
+	const id = req.params.id;
+	// TODO: check id is mongoid
+
+	const form = await Form.findOne({ _id: id });	
+	const submittions = form.submittions;
+
+	// to store the unique names of the columns
+	const columnNamesObj = {};
+	// every submittion of from the user sent, will saved in an object in data
+	const data = submittions.map(submittion => {
+		const row = {};
+		submittion.values.map( ({field_name, field_value}) =>{
+			const key = field_name; 
+			const value = field_value; 
+			// console.log(`${key}: ${value}`);
+			row[key] = value;
+			columnNamesObj[key] = "";
+		})
+		return r;
+	});
+
+	return res.send({ data, columns: Object.keys(columnNamesObj)});
+});
+
+// list forms (get all forms)
+router.get("/", async (req, res) => {
+	const forms = await Form.find({}, { _id: 1, name: 1});
+	return res.status(200).json(forms);
+});
+
+// create form
+router.post("/", (req, res) => {
+	const body = req.body;
+	
+	// TODO: check body
+	const newForm = new Form({
+		body
+	});
+	
+	newForm.save((err, mongoResp) => {
+		if (err || !mongoResp._id){
+			return res.status(500).json({ "response": "Error: couldn't save form", "error": err});
+		} else {
+			return res.status(200).json({ "response": "Form saved"});
+		}
+	});
+});
+
+// edit form
 router.put("/:id", async(req, res) => {
 	const id = req.params.id;
 	
-	// get data from request
+	// TODO: check body
 	const newForm = req.body;
 
 	Form.updateOne({ "_id": id }, newForm, (err, mongoResp) => {
@@ -154,8 +97,11 @@ router.put("/:id", async(req, res) => {
 	});
 });
 
+// delete form
 router.delete("/:id", (req, res) => {
 	const id = req.params.id
+
+	// TODO: check id is mongoid
 	
 	Form.deleteOne({ "_id": id }, (err, mongoResp) => {
 		if (err || mongoResp.deletedCount != 1){
