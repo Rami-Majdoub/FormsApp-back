@@ -20,20 +20,20 @@ router.get("/submit/:id",
 router.post("/submit/:id",
 	param("id").isMongoId(),
 	handleErrors,
-	(req, res) => {
-		// TODO: check body
-		const body = req.body;
+	async (req, res) => {
+		const id = req.params.id;
 
-		console.log(body);
-		const newForm = new Form({
-			body
-		});
+		// TODO: check body
+		const values = req.body.fields;
+
+		const f = await Form.findOne({ _id: id });
+		f.submittions.push({values});
 		
-		newForm.save((err, mongoResp) => {
-			if (err || !mongoResp._id){
-				return res.status(500).json({ "response": "Error: couldn't save form", "error": err});
+		f.save((err, mongoResp) => {
+			if (err){
+				return res.status(500).json({ "message": "Error: couldn't save submittion", "error": err});
 			} else {
-				return res.status(200).json({ "response": "Form saved"});
+				return res.status(200).json({ "message": "Form saved"});
 			}
 		});
 	}
@@ -45,7 +45,6 @@ router.get("/data/:id",
 	handleErrors,
 	async (req, res) => {
 		const id = req.params.id;
-		// TODO: check id is mongoid
 
 		const form = await Form.findOne({ _id: id });	
 		const submittions = form.submittions;
@@ -62,7 +61,7 @@ router.get("/data/:id",
 				row[key] = value;
 				columnNamesObj[key] = "";
 			})
-			return r;
+			return row;
 		});
 
 		return res.send({ data, columns: Object.keys(columnNamesObj)});
@@ -80,15 +79,12 @@ router.post("/", (req, res) => {
 	const body = req.body;
 	
 	// TODO: check body
-	const newForm = new Form({
-		body
-	});
-	
+	const newForm = new Form(body);	
 	newForm.save((err, mongoResp) => {
 		if (err || !mongoResp._id){
-			return res.status(500).json({ "response": "Error: couldn't save form", "error": err});
+			return res.status(500).json({ "message": "Error: couldn't save form", "error": err});
 		} else {
-			return res.status(200).json({ "response": "Form saved"});
+			return res.status(200).json({ "message": "Form saved"});
 		}
 	});
 });
@@ -101,13 +97,13 @@ router.put("/:id",
 		const id = req.params.id;
 		
 		// TODO: check body
-		const newForm = req.body;
+		const { name, fields } = req.body;
 
-		Form.updateOne({ "_id": id }, newForm, (err, mongoResp) => {
+		Form.updateOne({ "_id": id }, { name, fields }, (err, mongoResp) => {
 			if (err){
-				return res.status(500).json({ "response": "Error: couldn't update form", "error": err});
+				return res.status(500).json({ "message": "Error: couldn't update form", "error": err});
 			} else {
-				return res.status(200).json({ "response": "Form updated"});
+				return res.status(200).json({ "message": "Form updated"});
 			}
 		});
 	}
@@ -122,9 +118,9 @@ router.delete("/:id",
 		
 		Form.deleteOne({ "_id": id }, (err, mongoResp) => {
 			if (err || mongoResp.deletedCount != 1){
-				return res.status(500).json({ "response": "Error: couldn't delete form"});
+				return res.status(500).json({ "message": "Error: couldn't delete form"});
 			} else {
-				return res.status(200).json({ "response": "Form deleted"});
+				return res.status(200).json({ "message": "Form deleted"});
 			}
 		});
 	}
